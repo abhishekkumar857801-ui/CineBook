@@ -1,0 +1,23 @@
+.movie-details-page { width: 100%; max-width: 1300px; min-height: calc(100vh - 76px); margin: auto; padding: 38px 5% 70px; }
+.details-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 22px; padding: 9px 13px; border: 1px solid #30445e; border-radius: 8px; background: #101e31; color: #a9bed5; font-size: 13px; transition: .2s; }
+.details-back:hover { color: white; border-color: #168af0; }
+.movie-details-card { display: grid; grid-template-columns: minmax(230px,340px) minmax(0,1fr); gap: 45px; padding: 32px; border: 1px solid #24364e; border-radius: 21px; background: linear-gradient(145deg,rgba(16,30,49,.98),rgba(10,22,37,.98)); box-shadow: var(--shadow); }
+.details-poster-wrap { min-height: 430px; overflow: hidden; border-radius: 14px; background: #142b45; }
+.details-poster-wrap img { width: 100%; height: 100%; min-height: 430px; object-fit: cover; }
+.details-poster-fallback { min-height: 430px; display: grid; place-items: center; color: #48adff; }
+.movie-details-content { align-self: center; padding: 12px 0; }
+.details-kicker { color: #48adff; font-size: 11px; font-weight: 800; letter-spacing: 2px; }
+.movie-details-content h1 { margin: 12px 0 18px; font-size: clamp(30px,4vw,43px); line-height: 1.15; letter-spacing: -1.3px; }
+.details-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; margin-bottom: 32px; color: #a5b4c8; font-size: 13px; }
+.details-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.details-meta span:nth-of-type(3) { color: #ffc45c; }
+.meta-dot { width: 4px; height: 4px; border-radius: 50%; background: #536b86; }
+.movie-details-content h3 { margin-bottom: 9px; font-size: 16px; }
+.details-description { max-width: 680px; color: #9caec5; font-size: 14px; line-height: 1.9; }
+.details-note { display: flex; align-items: center; gap: 11px; margin: 25px 0; padding: 14px; border: 1px solid rgba(22,138,240,.2); border-radius: 10px; background: rgba(22,138,240,.08); color: #a9c8e8; font-size: 13px; }
+.details-note svg { flex-shrink: 0; color: #48adff; }
+.details-book-button,.primary-button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 23px; border: 0; border-radius: 10px; color: white; background: linear-gradient(135deg,#168af0,#0874d5); font-size: 14px; font-weight: 800; transition: .25s; }
+.details-book-button:hover,.primary-button:hover { transform: translateY(-2px); box-shadow: 0 9px 22px rgba(22,138,240,.25); }
+.details-empty { max-width: 600px; margin: 90px auto; padding: 40px; border: 1px solid #24364e; border-radius: 16px; background: #101e31; text-align: center; }
+.details-empty p { margin: 10px 0 22px; color: #9caec5; }
+@media(max-width:760px) { .movie-details-card { grid-template-columns: 1fr; gap: 25px; padding: 20px; } .details-poster-wrap { max-width: 260px; min-height: 350px; margin: auto; } .details-poster-wrap img,.details-poster-fallback { min-height: 350px; } .movie-details-content h1 { font-size: 29px; } }

@@ -1,0 +1,3 @@
+.register-card { max-width: 500px; }
+.register-card .auth-card form { gap: 9px; }
+.register-card .auth-submit { margin-top: 17px; }
