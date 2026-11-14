@@ -32,9 +32,6 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
-  getMovies() {
-    return request("/movies");
-  },
 
   register(userData) {
     return request("/auth/register", {
@@ -80,15 +77,23 @@ export const api = {
     });
   },
 
+  // TMDB can hang on some networks, so give up after 15 seconds
+  // and let the page show its "Try again" message.
   getTMDBPopularMovies() {
-    return request("/tmdb/popular");
+    return request("/tmdb/popular", { signal: AbortSignal.timeout(15000) });
   },
 
   searchTMDBMovies(query) {
-    return request(`/tmdb/search?query=${encodeURIComponent(query)}`);
+    return request(`/tmdb/search?query=${encodeURIComponent(query)}`, {
+      signal: AbortSignal.timeout(15000),
+    });
   },
 
   getAllBookings() {
     return request("/admin/bookings");
+  },
+
+  getAdminStats() {
+    return request("/admin/stats");
   },
 };

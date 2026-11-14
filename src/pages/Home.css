@@ -46,3 +46,6 @@
   .section-heading h2 { font-size: 25px; }
   .site-footer { gap: 10px; flex-wrap: wrap; }
 }
+.retry-button { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: 1px solid #30445e; border-radius: 10px; background: #14243a; color: #e8f2ff; font-size: 14px; font-weight: 700; transition: .2s; }
+.retry-button:hover { border-color: #168af0; background: #12375c; }
+.error-state p { max-width: 420px; padding: 0 16px; }

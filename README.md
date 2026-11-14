@@ -1,6 +1,6 @@
 # 🎬 CineBook – Movie Ticket Booking Website
 
-CineBook is a full-stack movie ticket booking app. Customers browse movies, pick a cinema, date and showtime, reserve seats and track their bookings. Administrators get a dashboard of movies and bookings.
+CineBook is a full-stack movie ticket booking app. Customers browse movies, pick a cinema, date and showtime, reserve seats and track their bookings. Movies are loaded live from TMDB, and administrators get a dashboard of bookings and customers.
 
 Built with **React + Vite**, **Node.js + Express**, and **MongoDB**.
 
@@ -8,7 +8,7 @@ Built with **React + Vite**, **Node.js + Express**, and **MongoDB**.
 
 ### 👤 Customers
 - Register and log in (JWT authentication, bcrypt-hashed passwords).
-- Browse and search popular movies (from TMDB, with automatic fallback to the CineBook catalogue in MongoDB if TMDB is unreachable).
+- Browse and search popular movies, loaded live from TMDB (The Movie Database).
 - View movie details.
 - Choose a cinema, show date and showtime.
 - **Live seat availability**: booked seats and seats currently being booked by someone else are shown and cannot be selected. The seat map refreshes every 15 seconds.
@@ -16,8 +16,8 @@ Built with **React + Vite**, **Node.js + Express**, and **MongoDB**.
 - View booking history in *My Bookings*.
 
 ### 🛠️ Administrators
-- Dashboard with movie and booking overviews.
-- Add, update and delete movies (API).
+- Dashboard with total bookings, seats booked, booking value and registered users.
+- List of recent bookings with customer, show and payment status.
 - View all bookings.
 
 ## 🔒 How seat locking works
@@ -47,9 +47,8 @@ movie ticket booking/
 └── server/
     ├── config/db.js
     ├── middleware/authMiddleware.js
-    ├── models/             # user, movie, booking, seatHold
-    ├── routes/             # auth, movies, bookings, admin, tmdb
-    ├── seedMovies.js       # load sample movies
+    ├── models/             # user, booking, seatHold
+    ├── routes/             # auth, bookings, admin, tmdb
     ├── makeAdmin.js        # give an account admin rights
     ├── server.js
     └── .env                # your secrets (not committed)
@@ -77,10 +76,9 @@ TMDB_READ_ACCESS_TOKEN=your_tmdb_read_access_token
 
 Only browsers on `localhost` can use the API by default. When you deploy the website, also add its address, for example `CLIENT_URL=https://your-site.com` (separate several with commas).
 
-Load the sample movies, then start the API:
+Start the API:
 
 ```bash
-npm run seed
 npm run dev
 ```
 
@@ -119,7 +117,6 @@ Log out and back in to see the **Admin** link.
 |---|---|---|---|
 | POST | `/api/auth/register` | – | Create an account |
 | POST | `/api/auth/login` | – | Log in, returns a JWT |
-| GET | `/api/movies` | – | CineBook movie catalogue |
 | GET | `/api/tmdb/popular` | – | Popular movies from TMDB |
 | GET | `/api/tmdb/search?query=` | – | Search TMDB |
 | GET | `/api/bookings/seats?movieId=&cinema=&showDate=&showTime=` | optional | Booked / held seats for a show |
@@ -127,16 +124,14 @@ Log out and back in to see the **Admin** link.
 | DELETE | `/api/bookings/hold` | user | Release your held seats |
 | POST | `/api/bookings` | user | Book your held seats |
 | GET | `/api/bookings/my-bookings` | user | Your bookings |
-| GET | `/api/admin/stats` | admin | Movie, booking and user counts |
+| GET | `/api/admin/stats` | admin | Booking, seat, value and user totals |
 | GET | `/api/admin/bookings` | admin | All bookings |
-| GET/POST/PUT/DELETE | `/api/admin/movies` | admin | Manage movies |
 
 ## 🛣️ Not built yet
 
 - Online payment (e.g. Cashfree / UPI). Bookings are currently saved with **Pending** payment status.
 - Booking cancellation.
 - Email notifications.
-- Admin UI for adding and editing movies (the API exists).
 
 ## 📌 Note
 

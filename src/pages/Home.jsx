@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Film, Sparkles } from "lucide-react";
+import { Search, Film, Sparkles, RefreshCw } from "lucide-react";
 import MovieCard from "../components/MovieCard";
 import { api } from "../services/api";
 import "./Home.css";
@@ -11,6 +11,8 @@ function Home() {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Bumped by the "Try again" button to re-run the fetch below.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -18,35 +20,18 @@ function Home() {
       try {
         setLoading(true);
         setError("");
-        let data;
-        try {
-          data = await api.getTMDBPopularMovies();
-        } catch (tmdbError) {
-          // TMDB is unreachable on some networks (several Indian ISPs block
-          // it), so fall back to the movies stored in our own database.
-          console.warn("TMDB unavailable, using CineBook catalogue:", tmdbError);
-          const local = await api.getMovies();
-          data = (Array.isArray(local) ? local : []).map((movie) => ({
-            id: movie._id,
-            title: movie.title,
-            overview: movie.description,
-            poster: movie.poster,
-            genre: movie.genre,
-            runtime: movie.duration,
-            vote_average: Number(movie.rating) || 0,
-          }));
-        }
+        const data = await api.getTMDBPopularMovies();
         if (active) setMovies(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Failed to load movies:", err);
-        if (active) setError(err.message || "Unable to load movies. Please try again.");
+        console.error("Failed to load movies from TMDB:", err);
+        if (active) setError("We couldn't load movies right now. Please check your connection and try again.");
       } finally {
         if (active) setLoading(false);
       }
     }
     fetchMovies();
     return () => { active = false; };
-  }, []);
+  }, [attempt]);
 
   const filteredMovies = useMemo(() => movies.filter((movie) =>
     (movie.title || "").toLowerCase().includes(search.toLowerCase().trim())
@@ -87,7 +72,12 @@ function Home() {
         {loading ? (
           <div className="movie-state"><div className="loading-spinner" /><p>Finding movies for you...</p></div>
         ) : error ? (
-          <div className="movie-state error-state"><p>{error}</p></div>
+          <div className="movie-state error-state">
+            <p>{error}</p>
+            <button type="button" className="retry-button" onClick={() => setAttempt((n) => n + 1)}>
+              <RefreshCw size={16} /> Try again
+            </button>
+          </div>
         ) : filteredMovies.length ? (
           <div className="movies-grid">
             {filteredMovies.map((movie) => (
@@ -96,9 +86,9 @@ function Home() {
                 movie={{
                   ...movie,
                   id: movie.id,
-                  poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : movie.poster || "",
-                  genre: movie.genre || "Movie",
-                  duration: movie.runtime || 0,
+                  poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : "",
+                  genre: "Movie",
+                  duration: 0,
                   rating: movie.vote_average ? Number(movie.vote_average.toFixed(1)) : "N/A",
                 }}
               />

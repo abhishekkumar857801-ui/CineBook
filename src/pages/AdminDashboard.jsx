@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Film, Ticket, TrendingUp, Activity } from "lucide-react";
+import { Ticket, Armchair, IndianRupee, Users, Activity } from "lucide-react";
 import { api } from "../services/api";
 import "./AdminDashboard.css";
 
+const RECENT_BOOKINGS_SHOWN = 20;
+
 function AdminDashboard() {
-  const [movies, setMovies] = useState([]);
+  const [stats, setStats] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -13,9 +15,9 @@ function AdminDashboard() {
     let active = true;
     async function loadDashboard() {
       try {
-        const [movieData, bookingData] = await Promise.all([api.getMovies(), api.getAllBookings()]);
+        const [statsData, bookingData] = await Promise.all([api.getAdminStats(), api.getAllBookings()]);
         if (active) {
-          setMovies(Array.isArray(movieData) ? movieData : movieData.movies || []);
+          setStats(statsData);
           setBookings(Array.isArray(bookingData) ? bookingData : bookingData.bookings || []);
         }
       } catch (err) {
@@ -30,33 +32,45 @@ function AdminDashboard() {
 
   if (loading) return <main className="admin-page"><div className="admin-loading">Loading dashboard...</div></main>;
 
+  const cards = [
+    { icon: <Ticket />, label: "Total Bookings", value: stats?.bookings ?? 0, note: "Reservations received" },
+    { icon: <Armchair />, label: "Seats Booked", value: stats?.seatsBooked ?? 0, note: "Across all shows" },
+    { icon: <IndianRupee />, label: "Booking Value", value: `₹${(stats?.totalAmount ?? 0).toLocaleString("en-IN")}`, note: "Payments still pending" },
+    { icon: <Users />, label: "Registered Users", value: stats?.users ?? 0, note: "Customer and admin accounts" },
+  ];
+
   return (
     <main className="admin-page page-animation">
-      <div className="admin-heading"><span className="section-kicker">CINEBOOK CONTROL CENTER</span><h1>Admin Dashboard</h1><p>Monitor your platform overview and recent activity.</p></div>
+      <div className="admin-heading"><span className="section-kicker">CINEBOOK CONTROL CENTER</span><h1>Admin Dashboard</h1><p>Monitor bookings and customers. Movies are loaded live from TMDB.</p></div>
       {error && <p className="admin-error">{error}</p>}
       <div className="admin-stats">
-        <article className="admin-stat-card"><span className="admin-stat-icon"><Film /></span><p>Total Movies</p><h2>{movies.length}</h2><small>Movies in your catalogue</small></article>
-        <article className="admin-stat-card"><span className="admin-stat-icon"><Ticket /></span><p>Total Bookings</p><h2>{bookings.length}</h2><small>Reservations received</small></article>
-        <article className="admin-stat-card"><span className="admin-stat-icon"><TrendingUp /></span><p>Booking Activity</p><h2>{bookings.length ? "Active" : "—"}</h2><small>Based on current records</small></article>
+        {cards.map((card) => (
+          <article className="admin-stat-card" key={card.label}>
+            <span className="admin-stat-icon">{card.icon}</span>
+            <p>{card.label}</p>
+            <h2>{card.value}</h2>
+            <small>{card.note}</small>
+          </article>
+        ))}
       </div>
       <section className="admin-section">
-        <div className="admin-section-heading"><h2><Film size={19} /> Movies</h2><span>{movies.length} total</span></div>
-        {movies.length === 0 ? <p className="admin-empty">No movies found.</p> : (
-          <div className="admin-list">{movies.map((movie) => (
-            <article className="admin-list-item" key={movie._id || movie.id}>
-              <div><strong>{movie.title || "Untitled movie"}</strong><small>{movie.genre || "Genre not specified"}</small></div>
-              <span className="admin-row-tag">Catalogue</span>
-            </article>
-          ))}</div>
-        )}
-      </section>
-      <section className="admin-section">
         <div className="admin-section-heading"><h2><Activity size={19} /> Recent Bookings</h2><span>{bookings.length} total</span></div>
-        {bookings.length === 0 ? <p className="admin-empty">No bookings found.</p> : (
-          <div className="admin-list">{bookings.slice(0,10).map((booking) => (
-            <article className="admin-list-item" key={booking._id || booking.id}>
-              <div><strong>{booking.movie?.title || booking.movieTitle || "Movie booking"}</strong><small>{booking._id || booking.id}</small></div>
-              <span className="admin-amount">₹{booking.totalAmount ?? booking.total ?? 0}</span>
+        {bookings.length === 0 ? <p className="admin-empty">No bookings yet.</p> : (
+          <div className="admin-list">{bookings.slice(0, RECENT_BOOKINGS_SHOWN).map((booking) => (
+            <article className="admin-list-item" key={booking._id}>
+              <div>
+                <strong>{booking.movie?.title || "Movie booking"}</strong>
+                <small>
+                  {booking.user?.name || "Unknown user"}{booking.user?.email ? ` · ${booking.user.email}` : ""}
+                </small>
+                <small>
+                  {booking.cinema} · {booking.showDate} · {booking.showTime} · Seats {booking.seats?.join(", ")}
+                </small>
+              </div>
+              <div className="admin-list-side">
+                <span className="admin-amount">₹{booking.totalAmount ?? 0}</span>
+                <span className={`admin-row-tag ${String(booking.paymentStatus || "").toLowerCase()}`}>{booking.paymentStatus || "Pending"}</span>
+              </div>
             </article>
           ))}</div>
         )}
