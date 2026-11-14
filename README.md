@@ -53,7 +53,7 @@ movie ticket booking/
     ├── makeAdmin.js        # give an account admin rights
     ├── migrateMovies.js    # copy movies from the old "test" database
     ├── server.js
-    └── .env.example
+    └── .env                # your secrets (not committed)
 ```
 
 ## ⚙️ Setup
@@ -65,10 +65,9 @@ You need Node.js 20+ and a MongoDB database (MongoDB Atlas works).
 ```bash
 cd server
 npm install
-cp .env.example .env
 ```
 
-Fill in `server/.env`:
+Create a file called `server/.env` with:
 
 ```env
 PORT=5002
