@@ -372,7 +372,7 @@ function SelectSeats() {
           </div>
 
           {message && (
-            <p className="seat-message" role="alert">
+            <p className="seat-message side-by-side-only" role="alert">
               {message}
             </p>
           )}
@@ -409,6 +409,8 @@ function SelectSeats() {
             <div className="cinema-screen"></div>
             <span>SCREEN</span>
           </div>
+
+          <p className="seat-swipe-hint">← Swipe to see all seats →</p>
 
           <div className="seat-layout">
 
@@ -490,9 +492,28 @@ function SelectSeats() {
             <p className="seat-loading-note">Checking seat availability...</p>
           )}
 
+          {message && (
+            <p className="seat-message stacked-only" role="alert">
+              {message}
+            </p>
+          )}
+
           <div className="seat-footer">
-            <span>{selectedSeats.length} seats selected</span>
-            <strong>₹{totalAmount}</strong>
+            <div className="seat-footer-summary">
+              <span>{selectedSeats.length} seat(s) selected</span>
+              <strong>₹{totalAmount}</strong>
+            </div>
+
+            {/* Shown when the page is stacked (phones/tablets), where the
+                left-hand summary would sit above the seat map. */}
+            <button
+              type="button"
+              className="continue-booking stacked-only"
+              disabled={selectedSeats.length === 0 || holding}
+              onClick={handleContinue}
+            >
+              {holding ? "Reserving..." : "Continue →"}
+            </button>
           </div>
 
         </section>

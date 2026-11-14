@@ -9,10 +9,11 @@
 .booking-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; background: rgba(22,138,240,.13); color: #48adff; }
 .booking-status { padding: 5px 10px; border-radius: 20px; color: #75e0b7; background: rgba(37,201,139,.1); font-size: 11px; font-weight: 700; }
 .booking-status.cancelled { color: #ff9aaa; background: rgba(255,100,124,.1); }
+.booking-status.pending { color: #f3c66b; background: rgba(240,170,22,.12); }
 .booking-card h2 { margin-bottom: 5px; color: #f2f6ff; font-size: 19px; }
 .booking-id { margin-bottom: 20px; color: #71859d; font-size: 11px; }
-.booking-info-row { display: flex; justify-content: space-between; gap: 15px; padding: 12px 0; border-top: 1px solid #24364e; color: #9caec5; font-size: 13px; }
-.booking-info-row span { display: inline-flex; align-items: center; gap: 8px; }
+.booking-info-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; padding: 12px 0; border-top: 1px solid #24364e; color: #9caec5; font-size: 13px; }
+.booking-info-row span { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap; }
 .booking-info-row span svg { color: #48adff; }
 .booking-info-row strong { color: #eaf2ff; text-align: right; }
 .empty-bookings,.booking-loading { max-width: 650px; margin: 45px auto; padding: 48px 25px; border: 1px solid #24364e; border-radius: 17px; background: #101e31; text-align: center; }

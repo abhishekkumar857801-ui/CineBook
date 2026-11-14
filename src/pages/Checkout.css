@@ -1,5 +1,5 @@
 .checkout-page { width: 100%; min-height: calc(100vh - 76px); max-width: 1100px; margin: auto; padding: 48px 5% 75px; }
-.checkout-heading { margin-bottom: 26px; }
+.checkout-heading { max-width: 760px; margin: 0 auto 26px; }
 .checkout-heading h1 { margin: 8px 0 6px; font-size: 32px; letter-spacing: -.8px; }
 .checkout-heading p { color: #8296ad; font-size: 14px; }
 .checkout-card { max-width: 760px; margin: auto; padding: 30px; border: 1px solid #24364e; border-radius: 19px; background: linear-gradient(145deg,#101e31,#0c192a); box-shadow: var(--shadow); }
@@ -14,7 +14,7 @@
 .checkout-detail span { color: #8296ad; font-size: 11px; }
 .checkout-detail strong { overflow-wrap: anywhere; color: #eaf2ff; font-size: 13px; }
 .checkout-price-list { padding: 22px 0 10px; }
-.checkout-price-list > div { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 14px; color: #9caec5; font-size: 14px; }
+.checkout-price-list > div { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 14px; color: #9caec5; font-size: 14px; }
 .checkout-price-list strong { color: #eaf2ff; text-align: right; }
 .checkout-price-list .checkout-total { margin-top: 20px; padding-top: 18px; border-top: 1px solid #263d59; color: white; font-size: 16px; font-weight: 700; }
 .checkout-total strong { color: #48adff; font-size: 25px; }

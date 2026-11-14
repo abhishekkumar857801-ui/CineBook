@@ -137,14 +137,14 @@ body {
   padding: 10px 10px 10px 0;
 }
 
-.movie-details {
+.cinema-booking-page .movie-details {
   display: flex;
   gap: 23px;
   padding-bottom: 30px;
   border-bottom: 1px solid #243247;
 }
 
-.movie-poster {
+.cinema-booking-page .movie-poster {
   flex-shrink: 0;
   width: 185px;
   height: 265px;
@@ -153,7 +153,7 @@ body {
   background: #152b44;
 }
 
-.movie-poster img {
+.cinema-booking-page .movie-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -198,24 +198,24 @@ body {
   overflow: hidden;
 }
 
-.movie-rating {
+.cinema-booking-page .movie-rating {
   display: flex;
   gap: 28px;
   margin-top: 25px;
 }
 
-.movie-rating div {
+.cinema-booking-page .movie-rating div {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.movie-rating span {
+.cinema-booking-page .movie-rating span {
   color: #8398b1;
   font-size: 12px;
 }
 
-.movie-rating strong {
+.cinema-booking-page .movie-rating strong {
   color: #e8f2ff;
   font-size: 17px;
 }
@@ -259,7 +259,7 @@ body {
 
 .showtime-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
   gap: 9px;
 }
 
@@ -341,6 +341,10 @@ body {
   border-radius: 12px;
   background: #14243a;
   border: 1px solid #263d59;
+}
+
+.checkout-summary > div {
+  text-align: left;
 }
 
 .checkout-summary span {
@@ -588,11 +592,11 @@ body {
     font-size: 16px;
   }
 
-  .movie-details {
+  .cinema-booking-page .movie-details {
     gap: 14px;
   }
 
-  .movie-poster {
+  .cinema-booking-page .movie-poster {
     width: 115px;
     height: 170px;
   }
@@ -612,21 +616,21 @@ body {
     -webkit-line-clamp: 3;
   }
 
-  .movie-rating {
+  .cinema-booking-page .movie-rating {
     gap: 15px;
     margin-top: 12px;
   }
 
-  .movie-rating span {
+  .cinema-booking-page .movie-rating span {
     font-size: 10px;
   }
 
-  .movie-rating strong {
+  .cinema-booking-page .movie-rating strong {
     font-size: 13px;
   }
 
   .showtime-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .seat-heading h2 {
@@ -663,7 +667,7 @@ body {
 }
 
 @media (max-width: 380px) {
-  .movie-poster {
+  .cinema-booking-page .movie-poster {
     width: 95px;
     height: 145px;
   }
@@ -672,7 +676,7 @@ body {
     font-size: 17px;
   }
 
-  .movie-rating {
+  .cinema-booking-page .movie-rating {
     gap: 9px;
   }
 }
@@ -705,4 +709,78 @@ body {
   color: #8195ac;
   font-size: 12px;
   text-align: center;
+}
+
+/* CONTINUE BUTTON PLACEMENT
+   Side by side (desktop): Continue lives in the left summary box.
+   Stacked (tablet/phone): the seat map comes after the summary, so the
+   summary is hidden and a sticky footer under the seats holds Continue. */
+
+.seat-footer-summary {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.stacked-only,
+.seat-swipe-hint {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .side-by-side-only,
+  .checkout-summary {
+    display: none;
+  }
+
+  /* The seat section's own top border already separates the two halves. */
+  .selected-ticket-section {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  p.stacked-only {
+    display: block;
+    margin: 18px 0 0;
+  }
+
+  .seat-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    gap: 16px;
+    padding: 14px 0;
+    background: #0d1727;
+  }
+
+  .seat-footer-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .continue-booking.stacked-only {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 650px) {
+  .seat-swipe-hint {
+    display: block;
+    margin: -18px 0 10px;
+    color: #6f86a1;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .seat-heading {
+    margin-bottom: 30px;
+  }
 }
