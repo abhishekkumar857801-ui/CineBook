@@ -51,7 +51,6 @@ movie ticket booking/
     ├── routes/             # auth, movies, bookings, admin, tmdb
     ├── seedMovies.js       # load sample movies
     ├── makeAdmin.js        # give an account admin rights
-    ├── migrateMovies.js    # copy movies from the old "test" database
     ├── server.js
     └── .env                # your secrets (not committed)
 ```
@@ -76,6 +75,8 @@ JWT_SECRET=a_long_random_secret
 TMDB_READ_ACCESS_TOKEN=your_tmdb_read_access_token
 ```
 
+Only browsers on `localhost` can use the API by default. When you deploy the website, also add its address, for example `CLIENT_URL=https://your-site.com` (separate several with commas).
+
 Load the sample movies, then start the API:
 
 ```bash
@@ -92,6 +93,11 @@ From the project root (the folder containing `index.html`):
 ```bash
 npm install
 npm run dev
+
+```
+To start TMDB to fetch movies details
+```bash
+curl -I "https://api.themoviedb.org/3/movie/popular"
 ```
 
 The site runs at `http://localhost:5173`. To use a different API address, set `VITE_API_URL` (default `http://localhost:5002/api`).

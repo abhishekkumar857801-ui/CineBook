@@ -1,9 +1,10 @@
+import { clearSession, getValidToken } from "./auth";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 
 async function request(endpoint, options = {}) {
-  const token = localStorage.getItem("token");
+  const token = getValidToken();
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -15,6 +16,13 @@ async function request(endpoint, options = {}) {
   });
 
   const data = await response.json().catch(() => ({}));
+
+  // The server no longer accepts our login (expired, user deleted, ...).
+  // Login/register return 401 for wrong passwords, so skip those.
+  if (response.status === 401 && token && !endpoint.startsWith("/auth/")) {
+    clearSession();
+    throw new Error("Your login has expired. Please log in again.");
+  }
 
   if (!response.ok) {
     throw new Error(data.message || "Something went wrong");

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { api } from "../services/api";
+import { getValidToken } from "../services/auth";
 import { TICKET_PRICE, getMovieId, getShow } from "../services/show";
 import "./Checkout.css";
 
@@ -60,7 +61,7 @@ function Checkout() {
       : "");
 
   const hasBooking = Boolean(movie && selectedSeats.length);
-  const isLoggedIn = Boolean(localStorage.getItem("token"));
+  const isLoggedIn = Boolean(getValidToken());
 
   const show = getShow({ movie, cinema: cinemaHall, showDate, showTime });
   const seatKey = selectedSeats.join(",");

@@ -17,52 +17,6 @@ body {
   padding: 25px 5%;
 }
 
-/* NAVIGATION */
-
-.cinema-navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.cinema-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
-.brand-icon {
-  width: 38px;
-  height: 38px;
-  background: #168af0;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  color: white;
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  color: #9caec5;
-}
-
-.navbar-profile {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #183b60;
-  color: #48adff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-}
-
 /* DATE NAVIGATION */
 
 .date-navigation {
@@ -783,4 +737,28 @@ body {
   .seat-heading {
     margin-bottom: 30px;
   }
+}
+
+/* PAST SHOWS */
+
+.date-option:disabled,
+.showtime-option:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.date-option:disabled:hover {
+  background: #101e31;
+  border-color: #24364e;
+}
+
+.showtime-option:disabled:hover {
+  background: #11233a;
+  border-color: #253d58;
+  color: #c3d3e7;
+}
+
+.showtime-option:disabled {
+  text-decoration: line-through;
 }

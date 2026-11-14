@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { TICKET_PRICE, getShow } from "../services/show";
+import { getValidToken } from "../services/auth";
+import { TICKET_PRICE, getShow, isShowInPast } from "../services/show";
 import "./SelectSeats.css";
 
 const BOOKING_STORAGE_KEY = "cinebook_pending_booking";
@@ -51,6 +52,23 @@ function getDateOptions() {
   return dates;
 }
 
+// First showtime on this date that hasn't started yet (or undefined).
+function firstUpcomingTime(date) {
+  return showTimes.find((time) => !isShowInPast(date, time));
+}
+
+// The saved date if it is still offered and has shows left, otherwise the
+// first date that still has an upcoming show.
+function getInitialDate(saved, dateOptions) {
+  const isOffered = dateOptions.some((option) => option.value === saved);
+  if (isOffered && firstUpcomingTime(saved)) return saved;
+
+  return (
+    dateOptions.find((option) => firstUpcomingTime(option.value))?.value ||
+    dateOptions[0].value
+  );
+}
+
 function SelectSeats() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,17 +76,23 @@ function SelectSeats() {
   const movie = location.state?.movie;
   const dateOptions = getDateOptions();
 
+  // Start on the date/time the customer had chosen, as long as that show
+  // hasn't started yet; otherwise pick the next upcoming show.
   const [cinema, setCinema] = useState(
     cinemaOptions.includes(location.state?.cinema)
       ? location.state.cinema
       : cinemaOptions[0]
   );
-  const [showDate, setShowDate] = useState(
-    location.state?.showDate || dateOptions[0].value
+  const [showDate, setShowDate] = useState(() =>
+    getInitialDate(location.state?.showDate, dateOptions)
   );
-  const [showTime, setShowTime] = useState(
-    location.state?.showTime || showTimes[0]
-  );
+  const [showTime, setShowTime] = useState(() => {
+    const date = getInitialDate(location.state?.showDate, dateOptions);
+    const saved = location.state?.showTime;
+    return showTimes.includes(saved) && !isShowInPast(date, saved)
+      ? saved
+      : firstUpcomingTime(date);
+  });
   const [selectedSeats, setSelectedSeats] = useState(
     location.state?.selectedSeats || []
   );
@@ -157,6 +181,15 @@ function SelectSeats() {
     setMessage("");
   }
 
+  // Keep the chosen time if it is still upcoming on the new date,
+  // otherwise move to that date's first upcoming show.
+  function changeDate(date) {
+    changeShow(setShowDate, date);
+    if (isShowInPast(date, showTime)) {
+      setShowTime(firstUpcomingTime(date));
+    }
+  }
+
   const toggleSeat = (seatId) => {
     if (isUnavailable(seatId)) return;
 
@@ -187,8 +220,16 @@ function SelectSeats() {
       return;
     }
 
+    // The page may have been left open until the show started.
+    if (isShowInPast(showDate, showTime)) {
+      setMessage("This show has already started. Please pick another time.");
+      setSelectedSeats([]);
+      setShowTime(firstUpcomingTime(showDate));
+      return;
+    }
+
     // Seats can only be held for a logged-in customer.
-    const token = localStorage.getItem("token");
+    const token = getValidToken();
 
     if (!token) {
       // Preserve the complete booking before redirecting to login.
@@ -242,7 +283,13 @@ function SelectSeats() {
             className={`date-option ${
               showDate === date.value ? "active" : ""
             }`}
-            onClick={() => changeShow(setShowDate, date.value)}
+            disabled={!firstUpcomingTime(date.value)}
+            title={
+              firstUpcomingTime(date.value)
+                ? undefined
+                : "No more shows today"
+            }
+            onClick={() => changeDate(date.value)}
           >
             <span>{date.day}</span>
             <strong>{date.date}</strong>
@@ -332,6 +379,12 @@ function SelectSeats() {
                   className={`showtime-option ${
                     showTime === time ? "active" : ""
                   }`}
+                  disabled={isShowInPast(showDate, time)}
+                  title={
+                    isShowInPast(showDate, time)
+                      ? "This show has already started"
+                      : undefined
+                  }
                   onClick={() => changeShow(setShowTime, time)}
                 >
                   {time}

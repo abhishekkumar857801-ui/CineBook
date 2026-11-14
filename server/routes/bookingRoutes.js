@@ -26,6 +26,30 @@ function getShow(source) {
   return Object.values(show).every(Boolean) ? show : null;
 }
 
+// True when the show has already started or the date/time is invalid.
+// Uses the server's local time zone, which should match the cinemas'.
+function isShowInPast({ showDate, showTime }) {
+  const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(showDate);
+  const time = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(showTime);
+  if (!date || !time) return true;
+
+  let hours = Number(time[1]) % 12;
+  if (time[3].toUpperCase() === "PM") hours += 12;
+
+  const start = new Date(
+    Number(date[1]),
+    Number(date[2]) - 1,
+    Number(date[3]),
+    hours,
+    Number(time[2])
+  );
+
+  return start <= new Date();
+}
+
+const PAST_SHOW_MESSAGE =
+  "This show has already started. Please choose another showtime.";
+
 function cleanSeats(seats) {
   if (!Array.isArray(seats)) return null;
 
@@ -96,6 +120,10 @@ router.post("/hold", async (req, res) => {
       return res.status(400).json({
         message: `Choose between 1 and ${MAX_SEATS_PER_BOOKING} valid seats.`,
       });
+    }
+
+    if (isShowInPast(show)) {
+      return res.status(400).json({ message: PAST_SHOW_MESSAGE });
     }
 
     const userId = req.user._id;
@@ -223,6 +251,10 @@ router.post("/", async (req, res) => {
       return res.status(400).json({
         message: "Complete movie and booking details are required.",
       });
+    }
+
+    if (isShowInPast(show)) {
+      return res.status(400).json({ message: PAST_SHOW_MESSAGE });
     }
 
     const holds = await SeatHold.find({

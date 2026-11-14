@@ -9,17 +9,37 @@ const router = express.Router();
 // Register a new user
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body || {};
 
-    if (!name || !email || !password) {
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !name.trim() ||
+      !email.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         message: "Name, email and password are required.",
       });
     }
 
-    if (password.length < 8) {
+    if (name.trim().length > 60) {
       return res.status(400).json({
-        message: "Password must contain at least 8 characters.",
+        message: "Name must be 60 characters or fewer.",
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({
+        message: "Please enter a valid email address.",
+      });
+    }
+
+    // bcrypt only uses the first 72 bytes of a password.
+    if (password.length < 8 || password.length > 72) {
+      return res.status(400).json({
+        message: "Password must be between 8 and 72 characters.",
       });
     }
 

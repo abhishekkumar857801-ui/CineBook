@@ -12,8 +12,32 @@ const bookingRoutes = require("./routes/bookingRoutes");
 
 const app = express();
 
-app.use(cors());
+// Only let our own website call the API from a browser.
+// Any localhost port is allowed for development; for a deployed site, set
+// CLIENT_URL in .env (comma-separated for several, e.g. "https://cinebook.in").
+const allowedOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
+        origin || ""
+      );
+      // No origin = not a browser (curl, scripts, server-to-server).
+      callback(null, !origin || isLocal || allowedOrigins.includes(origin));
+    },
+  })
+);
 app.use(express.json());
+
+// Express 5 leaves req.body undefined when no JSON body is sent.
+app.use((req, res, next) => {
+  req.body ??= {};
+  next();
+});
 
 // Test route
 app.get("/", (req, res) => {
