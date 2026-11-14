@@ -1,200 +1,138 @@
-
 # 🎬 CineBook – Movie Ticket Booking Website
 
-CineBook is a full-stack movie ticket booking web application that allows users to explore movies, view movie details, select seats, and manage their bookings. It also provides an Admin Dashboard to manage movies and monitor bookings.
+CineBook is a full-stack movie ticket booking app. Customers browse movies, pick a cinema, date and showtime, reserve seats and track their bookings. Administrators get a dashboard of movies and bookings.
 
-The application is built using React.js, Node.js, Express.js, and MongoDB.
+Built with **React + Vite**, **Node.js + Express**, and **MongoDB**.
 
 ## 🚀 Features
 
-### 👤 User Features
-- User registration and login.
-- Secure authentication using JWT.
-- Browse available movies.
-- Search and explore movies.
+### 👤 Customers
+- Register and log in (JWT authentication, bcrypt-hashed passwords).
+- Browse and search popular movies (from TMDB, with automatic fallback to the CineBook catalogue in MongoDB if TMDB is unreachable).
 - View movie details.
-- Select cinema seats.
-- Choose show dates and showtimes.
-- Proceed to checkout.
-- View personal booking history.
+- Choose a cinema, show date and showtime.
+- **Live seat availability**: booked seats and seats currently being booked by someone else are shown and cannot be selected. The seat map refreshes every 15 seconds.
+- **Seat locking**: selected seats are held for 10 minutes while you check out, with a countdown on the checkout page.
+- View booking history in *My Bookings*.
 
-### 🛠️ Admin Features
-- Admin login and authentication.
-- Admin Dashboard.
-- View total movies.
-- Add new movies.
-- Update movie details.
-- Delete movies.
-- View movie bookings.
+### 🛠️ Administrators
+- Dashboard with movie and booking overviews.
+- Add, update and delete movies (API).
+- View all bookings.
 
-### 🎥 Movie Features
-- Movie catalogue with sample movie data.
-- TMDB API integration for movie information.
-- Movie posters and descriptions.
-- Movie genre, language, rating, and ticket price.
+## 🔒 How seat locking works
 
-## 🧰 Technologies Used
+Each seat for a show (movie + cinema + date + time) is stored as one document in the `seatholds` collection, protected by a **unique index**. That makes double-booking impossible, even if two people click at the same instant.
 
-### Frontend
-- React.js
-- Vite
-- JavaScript
-- HTML5
-- CSS3
-- React Router
+1. **Continue** on the seat page asks the server to hold the seats (`POST /api/bookings/hold`). If any seat was just taken, nothing is held and you are asked to pick again.
+2. The hold expires after 10 minutes. MongoDB removes expired holds automatically using a TTL index.
+3. **Confirm Booking** turns the hold into a booking. The seats then stay taken permanently.
+4. **Back to Seats** releases the hold so others can pick those seats.
 
-### Backend
-- Node.js
-- Express.js
-- REST API
-- JWT Authentication
-- bcryptjs
-
-### Database
-- MongoDB Atlas
-- Mongoose
-
-### External API
-- The Movie Database (TMDB)
+Ticket prices are set on the server (₹200 per seat), so customers cannot change them.
 
 ## 📁 Project Structure
 
 ```text
-CineBook/
-│
-├── client/
-│   ├── public/
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── services/
-│       ├── App.jsx
-│       └── main.jsx
-│
-├── server/
-│   ├── config/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── seedMovies.js
-│   ├── server.js
-│   └── .env
-│
-├── .gitignore
-└── README.md
+movie ticket booking/
+├── index.html
+├── vite.config.js
+├── package.json            # frontend
+├── src/
+│   ├── components/         # Navbar, MovieCard, ProtectedRoute, ...
+│   ├── pages/              # Home, MovieDetails, SelectSeats, Checkout, MyBookings, Login, Register, AdminDashboard
+│   ├── services/           # api.js (API client), show.js (booking helpers)
+│   ├── App.jsx
+│   └── main.jsx
+└── server/
+    ├── config/db.js
+    ├── middleware/authMiddleware.js
+    ├── models/             # user, movie, booking, seatHold
+    ├── routes/             # auth, movies, bookings, admin, tmdb
+    ├── seedMovies.js       # load sample movies
+    ├── makeAdmin.js        # give an account admin rights
+    ├── migrateMovies.js    # copy movies from the old "test" database
+    ├── server.js
+    └── .env.example
 ```
 
-## ⚙️ Installation and Setup
+## ⚙️ Setup
 
+You need Node.js 20+ and a MongoDB database (MongoDB Atlas works).
 
-```bash
-cd CineBook
-```
-
-### 1. Setup Backend
+### 1. Backend
 
 ```bash
 cd server
 npm install
+cp .env.example .env
 ```
 
-Create a `.env` file inside the server folder:
+Fill in `server/.env`:
 
 ```env
 PORT=5002
 MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+JWT_SECRET=a_long_random_secret
 TMDB_READ_ACCESS_TOKEN=your_tmdb_read_access_token
 ```
 
-Replace the placeholder values with your own credentials.
-
-### 2. Add Sample Movies
-
-To insert the sample movies into MongoDB, run:
+Load the sample movies, then start the API:
 
 ```bash
-node seedMovies.js
-```
-
-### 3. Start Backend Server
-
-```bash
+npm run seed
 npm run dev
 ```
 
-If a development script is not configured, use:
+The API runs at `http://localhost:5002`.
+
+### 2. Frontend
+
+From the project root (the folder containing `index.html`):
 
 ```bash
-node server.js
-```
-
-Backend runs at:
-
-```text
-http://localhost:5002
-```
-
-### 4. Setup Frontend
-
-Open another terminal:
-
-```bash
-cd client
 npm install
-```
-
-Start the React development server:
-
-```bash
 npm run dev
 ```
 
-Frontend runs at:
+The site runs at `http://localhost:5173`. To use a different API address, set `VITE_API_URL` (default `http://localhost:5002/api`).
 
-```text
-http://localhost:5173
+### 3. Make yourself an admin (optional)
+
+Register an account on the site, then:
+
+```bash
+cd server
+npm run make-admin
 ```
 
-## 🔐 Authentication
+Log out and back in to see the **Admin** link.
 
-CineBook uses JWT-based authentication.
+## 🔌 API overview
 
-- Users can register and log in.
-- Passwords are hashed using bcryptjs.
-- Protected routes require authentication.
-- Admin routes require administrator privileges.
+| Method | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/auth/register` | – | Create an account |
+| POST | `/api/auth/login` | – | Log in, returns a JWT |
+| GET | `/api/movies` | – | CineBook movie catalogue |
+| GET | `/api/tmdb/popular` | – | Popular movies from TMDB |
+| GET | `/api/tmdb/search?query=` | – | Search TMDB |
+| GET | `/api/bookings/seats?movieId=&cinema=&showDate=&showTime=` | optional | Booked / held seats for a show |
+| POST | `/api/bookings/hold` | user | Hold seats for 10 minutes |
+| DELETE | `/api/bookings/hold` | user | Release your held seats |
+| POST | `/api/bookings` | user | Book your held seats |
+| GET | `/api/bookings/my-bookings` | user | Your bookings |
+| GET | `/api/admin/stats` | admin | Movie, booking and user counts |
+| GET | `/api/admin/bookings` | admin | All bookings |
+| GET/POST/PUT/DELETE | `/api/admin/movies` | admin | Manage movies |
 
-## 🗄️ Database
+## 🛣️ Not built yet
 
-MongoDB Atlas is used to store application data.
-
-Main collections include:
-
-- Users
-- Movies
-- Bookings (when booking functionality is configured)
-
-## 🎯 Future Enhancements
-
-- Online payment integration using Cashfree.
-- Automatic UPI QR payment verification.
-- Real-time booking confirmation.
-- Seat availability and temporary seat locking.
-- Email and in-app booking notifications.
-- Improved movie recommendations.
-- Enhanced admin analytics.
-
-## 👨‍💻 Developer
-
-Project: CineBook – Movie Ticket Booking Website
-
-Technologies: React.js | Node.js | Express.js | MongoDB
+- Online payment (e.g. Cashfree / UPI). Bookings are currently saved with **Pending** payment status.
+- Booking cancellation.
+- Email notifications.
+- Admin UI for adding and editing movies (the API exists).
 
 ## 📌 Note
 
-This project is developed for learning and demonstration purposes. Payment integration and some booking features may still be under development.
-
----
-
-
+This project was built for learning and demonstration purposes.

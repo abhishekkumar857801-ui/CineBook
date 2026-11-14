@@ -676,3 +676,33 @@ body {
     gap: 9px;
   }
 }
+
+/* SEAT LOCKING */
+
+.cinema-seat.held {
+  background: #5a4317;
+  border-color: #7a5b1f;
+  color: #c9a45a;
+  cursor: not-allowed;
+}
+
+.legend-box.held {
+  background: #7a5b1f;
+}
+
+.seat-message {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #7a2e3c;
+  background: rgba(255, 92, 122, 0.1);
+  color: #ff9fb0;
+  font-size: 13px;
+}
+
+.seat-loading-note {
+  margin: 8px 0 0;
+  color: #8195ac;
+  font-size: 12px;
+  text-align: center;
+}

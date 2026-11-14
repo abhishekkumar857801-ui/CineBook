@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { api } from "../services/api";
+import { TICKET_PRICE, getShow } from "../services/show";
 import "./SelectSeats.css";
 
-const TICKET_PRICE = 200;
 const BOOKING_STORAGE_KEY = "cinebook_pending_booking";
+
+// How often to refresh seat availability while the page is open.
+const AVAILABILITY_REFRESH_MS = 15000;
 
 const cinemaOptions = [
   "INOX: Megaplex Mall of Asia Bangalore",
@@ -21,13 +25,6 @@ const showTimes = [
 
 const rows = ["G", "F", "E", "D", "C", "B", "A"];
 const seatsPerRow = 16;
-
-// Demo data only. Replace with MongoDB seat availability later.
-const bookedSeats = [
-  "G3", "G4", "F5", "E6", "E7", "E8",
-  "D3", "D4", "D5", "D7", "C7", "C8",
-  "B2", "B3", "B11", "B12", "A5", "A6",
-];
 
 function getLocalDate(date) {
   const year = date.getFullYear();
@@ -58,15 +55,14 @@ function SelectSeats() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const movie = location.state?.movie || {
-    title: "Spider-Man: Brand New Day",
-    release_date: "2025",
-    overview: "Enjoy your movie experience with CineBook.",
-  };
-
+  const movie = location.state?.movie;
   const dateOptions = getDateOptions();
 
-  const [cinema, setCinema] = useState(cinemaOptions[0]);
+  const [cinema, setCinema] = useState(
+    cinemaOptions.includes(location.state?.cinema)
+      ? location.state.cinema
+      : cinemaOptions[0]
+  );
   const [showDate, setShowDate] = useState(
     location.state?.showDate || dateOptions[0].value
   );
@@ -76,6 +72,69 @@ function SelectSeats() {
   const [selectedSeats, setSelectedSeats] = useState(
     location.state?.selectedSeats || []
   );
+
+  // Seats other people have booked or are currently holding.
+  const [bookedSeats, setBookedSeats] = useState([]);
+  const [heldSeats, setHeldSeats] = useState([]);
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
+
+  const [holding, setHolding] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const movieId = getShow({ movie }).movieId;
+
+  const loadAvailability = useCallback(async () => {
+    if (!movieId) return;
+
+    try {
+      const data = await api.getSeatAvailability({
+        movieId,
+        cinema,
+        showDate,
+        showTime,
+      });
+
+      setBookedSeats(data.booked || []);
+      setHeldSeats(data.held || []);
+      setAvailabilityLoaded(true);
+
+      // Drop any of my selected seats that someone else has taken meanwhile.
+      const taken = new Set([...(data.booked || []), ...(data.held || [])]);
+      setSelectedSeats((previous) => {
+        const stillFree = previous.filter((seat) => !taken.has(seat));
+        if (stillFree.length !== previous.length) {
+          setMessage(
+            "Some of your selected seats were just taken by someone else."
+          );
+        }
+        return stillFree;
+      });
+    } catch (error) {
+      console.error("Seat availability error:", error);
+    }
+  }, [movieId, cinema, showDate, showTime]);
+
+  useEffect(() => {
+    setAvailabilityLoaded(false);
+    loadAvailability();
+
+    const timer = setInterval(loadAvailability, AVAILABILITY_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [loadAvailability]);
+
+  if (!movie) {
+    return (
+      <main className="movie-details-page page-animation">
+        <div className="details-empty">
+          <h2>No movie selected</h2>
+          <p>Please choose a movie from the homepage first.</p>
+          <button className="primary-button" onClick={() => navigate("/")}>
+            Browse Movies
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   const posterUrl = movie.poster_path
     ? movie.poster_path.startsWith("http")
@@ -87,13 +146,27 @@ function SelectSeats() {
 
   const totalAmount = selectedSeats.length * TICKET_PRICE;
 
-  const toggleSeat = (seatId) => {
-    if (bookedSeats.includes(seatId)) return;
+  function isUnavailable(seatId) {
+    return bookedSeats.includes(seatId) || heldSeats.includes(seatId);
+  }
 
+  // Seats belong to one show, so changing the show clears the selection.
+  function changeShow(setter, value) {
+    setter(value);
+    setSelectedSeats([]);
+    setMessage("");
+  }
+
+  const toggleSeat = (seatId) => {
+    if (isUnavailable(seatId)) return;
+
+    setMessage("");
     setSelectedSeats((previous) =>
       previous.includes(seatId)
         ? previous.filter((seat) => seat !== seatId)
-        : [...previous, seatId]
+        : previous.length >= 10
+          ? previous
+          : [...previous, seatId]
     );
   };
 
@@ -108,18 +181,13 @@ function SelectSeats() {
     ticketPrice: TICKET_PRICE,
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedSeats.length === 0) {
-      alert("Please select at least one seat.");
+      setMessage("Please select at least one seat.");
       return;
     }
 
-    if (!showDate || !showTime || !cinema) {
-      alert("Please select cinema, date and showtime.");
-      return;
-    }
-
-    // Check login before allowing checkout/payment.
+    // Seats can only be held for a logged-in customer.
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -133,32 +201,35 @@ function SelectSeats() {
         state: {
           from: "/checkout",
           booking: bookingData,
+          message: "Please log in to reserve your seats.",
         },
       });
 
       return;
     }
 
-    navigate("/checkout", {
-      state: bookingData,
-    });
+    try {
+      setHolding(true);
+      setMessage("");
+
+      const hold = await api.holdSeats(
+        getShow(bookingData),
+        selectedSeats
+      );
+
+      navigate("/checkout", {
+        state: { ...bookingData, holdExpiresAt: hold.expiresAt },
+      });
+    } catch (error) {
+      setMessage(error.message || "Unable to reserve these seats.");
+      loadAvailability();
+    } finally {
+      setHolding(false);
+    }
   };
 
   return (
     <div className="cinema-booking-page">
-
-      {/* Navigation */}
-      <nav className="cinema-navbar">
-        <div className="cinema-brand">
-          <span className="brand-icon">C</span>
-          <span>CineBook</span>
-        </div>
-
-        <div className="navbar-right">
-          <span className="navbar-label">Movie Booking</span>
-          <span className="navbar-profile">CB</span>
-        </div>
-      </nav>
 
       {/* Date Selection */}
       <div className="date-navigation">
@@ -171,7 +242,7 @@ function SelectSeats() {
             className={`date-option ${
               showDate === date.value ? "active" : ""
             }`}
-            onClick={() => setShowDate(date.value)}
+            onClick={() => changeShow(setShowDate, date.value)}
           >
             <span>{date.day}</span>
             <strong>{date.date}</strong>
@@ -239,7 +310,7 @@ function SelectSeats() {
             <select
               id="cinema"
               value={cinema}
-              onChange={(e) => setCinema(e.target.value)}
+              onChange={(e) => changeShow(setCinema, e.target.value)}
             >
               {cinemaOptions.map((item) => (
                 <option value={item} key={item}>
@@ -261,7 +332,7 @@ function SelectSeats() {
                   className={`showtime-option ${
                     showTime === time ? "active" : ""
                   }`}
-                  onClick={() => setShowTime(time)}
+                  onClick={() => changeShow(setShowTime, time)}
                 >
                   {time}
                 </button>
@@ -275,7 +346,7 @@ function SelectSeats() {
 
             {selectedSeats.length === 0 ? (
               <p className="empty-selection">
-                Select your seats to continue.
+                Select your seats to continue (up to 10).
               </p>
             ) : (
               <div className="selected-ticket-list">
@@ -300,6 +371,12 @@ function SelectSeats() {
             )}
           </div>
 
+          {message && (
+            <p className="seat-message" role="alert">
+              {message}
+            </p>
+          )}
+
           {/* Total and Continue */}
           <div className="checkout-summary">
             <div>
@@ -311,10 +388,10 @@ function SelectSeats() {
             <button
               type="button"
               className="continue-booking"
-              disabled={selectedSeats.length === 0}
+              disabled={selectedSeats.length === 0 || holding}
               onClick={handleContinue}
             >
-              Continue →
+              {holding ? "Reserving..." : "Continue →"}
             </button>
           </div>
 
@@ -345,29 +422,33 @@ function SelectSeats() {
                   (_, index) => {
                     const seatId = `${row}${index + 1}`;
                     const isBooked = bookedSeats.includes(seatId);
-                    const isSelected =
-                      selectedSeats.includes(seatId);
+                    const isHeld = heldSeats.includes(seatId);
+                    const isSelected = selectedSeats.includes(seatId);
+
+                    const state = isBooked
+                      ? "booked"
+                      : isHeld
+                        ? "held"
+                        : isSelected
+                          ? "selected"
+                          : "available";
+
+                    const label = {
+                      booked: "Booked",
+                      held: "Being booked by someone else",
+                      selected: "Selected",
+                      available: "Available",
+                    }[state];
 
                     return (
                       <button
                         type="button"
                         key={seatId}
-                        disabled={isBooked}
+                        disabled={isBooked || isHeld}
                         onClick={() => toggleSeat(seatId)}
-                        className={`cinema-seat ${
-                          isBooked
-                            ? "booked"
-                            : isSelected
-                            ? "selected"
-                            : "available"
-                        }`}
-                        title={`${seatId} - ${
-                          isBooked
-                            ? "Booked"
-                            : isSelected
-                            ? "Selected"
-                            : "Available"
-                        }`}
+                        className={`cinema-seat ${state}`}
+                        title={`${seatId} - ${label}`}
+                        aria-label={`Seat ${seatId}, ${label}`}
                       >
                         {index + 1}
                       </button>
@@ -395,10 +476,19 @@ function SelectSeats() {
             </div>
 
             <div>
+              <span className="legend-box held"></span>
+              On hold
+            </div>
+
+            <div>
               <span className="legend-box booked"></span>
               Booked
             </div>
           </div>
+
+          {!availabilityLoaded && (
+            <p className="seat-loading-note">Checking seat availability...</p>
+          )}
 
           <div className="seat-footer">
             <span>{selectedSeats.length} seats selected</span>

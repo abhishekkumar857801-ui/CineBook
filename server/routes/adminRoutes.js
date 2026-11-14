@@ -1,8 +1,21 @@
 
 const express = require("express");
-const Movie = require("../models/Movie");
+const Movie = require("../models/movie");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 const Booking = require("../models/booking");
+const User = require("../models/user");
+
+const EDITABLE_MOVIE_FIELDS = [
+  "title",
+  "description",
+  "poster",
+  "genre",
+  "duration",
+  "language",
+  "rating",
+  "price",
+];
+
 const router = express.Router();
 
 // All routes in this file require administrator access.
@@ -11,12 +24,16 @@ router.use(protect, adminOnly);
 // Dashboard statistics
 router.get("/stats", async (req, res) => {
   try {
-    const movieCount = await Movie.countDocuments();
+    const [movieCount, bookingCount, userCount] = await Promise.all([
+      Movie.countDocuments(),
+      Booking.countDocuments(),
+      User.countDocuments(),
+    ]);
 
     res.json({
       movies: movieCount,
-      bookings: 0,
-      users: 0,
+      bookings: bookingCount,
+      users: userCount,
       message: "Movie statistics loaded successfully.",
     });
   } catch (error) {
@@ -114,9 +131,15 @@ router.post("/movies", async (req, res) => {
 // Update a movie
 router.put("/movies/:id", async (req, res) => {
   try {
+    // Only allow known movie fields to be changed.
+    const updates = {};
+    for (const field of EDITABLE_MOVIE_FIELDS) {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+
     const movie = await Movie.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
+      { $set: updates },
       {
         new: true,
         runValidators: true,

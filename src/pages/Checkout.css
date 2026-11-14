@@ -28,3 +28,9 @@
 .checkout-empty > svg { margin: 0 auto 15px; color: #48adff; }
 .checkout-empty p { margin: 9px 0 22px; color: #9caec5; }
 @media(max-width:560px) { .checkout-card { padding: 20px 16px; } .checkout-details-grid { grid-template-columns: 1fr; } .checkout-heading h1 { font-size: 27px; } .checkout-movie img,.checkout-poster-fallback { width: 85px; height: 120px; } .checkout-movie-info h2 { font-size: 18px; } }
+.confirm-booking-button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+.hold-timer { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; border: 1px solid #1b6199; background: rgba(22,138,240,.08); color: #9fd2ff; font-size: 13px; }
+.hold-timer strong { font-variant-numeric: tabular-nums; color: white; }
+.hold-timer.urgent { border-color: #7a5b1f; background: rgba(240,170,22,.1); color: #f3c66b; }
+.hold-timer.expired { border-color: #7a2e3c; background: rgba(255,92,122,.1); color: #ff9fb0; }
+.checkout-error { margin: 0 0 14px; color: #ff8fa3; font-size: 13px; }

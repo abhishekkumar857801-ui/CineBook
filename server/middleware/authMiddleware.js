@@ -52,6 +52,27 @@ async function protect(req, res, next) {
   }
 }
 
+// Attach req.user when a valid token is sent, but never block the request.
+async function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ") || !process.env.JWT_SECRET) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(
+      authHeader.split(" ")[1],
+      process.env.JWT_SECRET
+    );
+    req.user = await User.findById(decoded.userId).select("-password");
+  } catch {
+    // Invalid token: continue as a guest.
+  }
+
+  next();
+}
+
 // Allow access only to administrators
 function adminOnly(req, res, next) {
   if (!req.user || req.user.role !== "admin") {
@@ -63,4 +84,4 @@ function adminOnly(req, res, next) {
   next();
 }
 
-module.exports = { protect, adminOnly };
+module.exports = { protect, optionalAuth, adminOnly };

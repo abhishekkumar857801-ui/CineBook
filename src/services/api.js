@@ -52,13 +52,33 @@ export const api = {
       body: JSON.stringify(bookingData),
     });
   },
-  getTMDBPopularMovies() {
-  return request("/tmdb/popular");
-},
 
-searchTMDBMovies(query) {
-  return request(`/tmdb/search?query=${encodeURIComponent(query)}`);
-},
+  // show = { movieId, cinema, showDate, showTime }
+  getSeatAvailability(show) {
+    return request(`/bookings/seats?${new URLSearchParams(show)}`);
+  },
+
+  holdSeats(show, seats) {
+    return request("/bookings/hold", {
+      method: "POST",
+      body: JSON.stringify({ ...show, seats }),
+    });
+  },
+
+  releaseSeats(show) {
+    return request("/bookings/hold", {
+      method: "DELETE",
+      body: JSON.stringify(show),
+    });
+  },
+
+  getTMDBPopularMovies() {
+    return request("/tmdb/popular");
+  },
+
+  searchTMDBMovies(query) {
+    return request(`/tmdb/search?query=${encodeURIComponent(query)}`);
+  },
 
   getAllBookings() {
     return request("/admin/bookings");

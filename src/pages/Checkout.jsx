@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Film,
@@ -10,12 +9,21 @@ import {
   Ticket,
   ArrowLeft,
   CreditCard,
+  Timer,
 } from "lucide-react";
 
 import { api } from "../services/api";
+import { TICKET_PRICE, getMovieId, getShow } from "../services/show";
 import "./Checkout.css";
 
 const BOOKING_STORAGE_KEY = "cinebook_pending_booking";
+
+function formatRemaining(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
 
 function Checkout() {
   const { state } = useLocation();
@@ -24,18 +32,22 @@ function Checkout() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
+  // When the seat hold ends (ISO string from the server).
+  const [holdExpiresAt, setHoldExpiresAt] = useState(
+    state?.holdExpiresAt || null
+  );
+  const [holdError, setHoldError] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+
   const movie = state?.movie;
   const selectedSeats = state?.selectedSeats || state?.seats || [];
 
-  const ticketPrice = state?.ticketPrice ?? 200;
-  const total =
-    state?.totalAmount ?? selectedSeats.length * ticketPrice;
+  const ticketPrice = TICKET_PRICE;
+  const total = selectedSeats.length * ticketPrice;
 
-  const cinemaHall =
-    state?.cinema || state?.cinemaHall || "Not selected";
-
-  const showDate = state?.showDate || "Not selected";
-  const showTime = state?.showTime || "Not selected";
+  const cinemaHall = state?.cinema || state?.cinemaHall || "";
+  const showDate = state?.showDate || "";
+  const showTime = state?.showTime || "";
 
   const movieTitle =
     movie?.title || movie?.name || "Selected Movie";
@@ -47,26 +59,62 @@ function Checkout() {
         : `https://image.tmdb.org/t/p/w500${movie.poster_path}`
       : "");
 
-  async function handleContinueToPayment() {
-    if (!movie || selectedSeats.length === 0) {
-      alert("Booking details are missing.");
-      navigate("/select-seats", {
-        replace: true,
-        state: { movie },
+  const hasBooking = Boolean(movie && selectedSeats.length);
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+  const show = getShow({ movie, cinema: cinemaHall, showDate, showTime });
+  const seatKey = selectedSeats.join(",");
+
+  // Make sure the seats are held for this customer. This covers arriving
+  // here straight after logging in. Holding again never extends the timer.
+  useEffect(() => {
+    if (!hasBooking || !isLoggedIn) return;
+
+    let active = true;
+
+    api
+      .holdSeats(show, selectedSeats)
+      .then((hold) => {
+        if (active) {
+          setHoldExpiresAt(hold.expiresAt);
+          setHoldError("");
+        }
+      })
+      .catch((error) => {
+        if (active) setHoldError(error.message || "Unable to hold your seats.");
       });
+
+    return () => {
+      active = false;
+    };
+    // show/selectedSeats are rebuilt every render; seatKey + show fields cover them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasBooking, isLoggedIn, show.movieId, cinemaHall, showDate, showTime, seatKey]);
+
+  // Tick the countdown every second.
+  useEffect(() => {
+    if (!holdExpiresAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [holdExpiresAt]);
+
+  const remainingMs = holdExpiresAt
+    ? new Date(holdExpiresAt).getTime() - now
+    : null;
+  const holdExpired = remainingMs !== null && remainingMs <= 0;
+
+  async function handleContinueToPayment() {
+    if (!hasBooking) {
+      navigate("/select-seats", { replace: true, state: { movie } });
       return;
     }
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
+    if (!isLoggedIn) {
       const booking = {
         ...state,
         cinema: cinemaHall,
         selectedSeats,
         seats: selectedSeats,
-        ticketPrice,
-        totalAmount: total,
       };
 
       sessionStorage.setItem(
@@ -91,25 +139,24 @@ function Checkout() {
 
       await api.createBooking({
         movie: {
-          id: movie.id || movie._id,
+          id: getMovieId(movie),
           title: movieTitle,
           poster,
-          genre: movie.genre || "",
+          genre: typeof movie.genre === "string" ? movie.genre : "",
         },
         cinema: cinemaHall,
         showDate,
         showTime,
-        selectedSeats,
-        ticketPrice,
+        seats: selectedSeats,
       });
 
       sessionStorage.removeItem(BOOKING_STORAGE_KEY);
 
-      alert(
-        "Your booking has been saved! Payment is still pending."
-      );
-
-      navigate("/my-bookings");
+      navigate("/my-bookings", {
+        state: {
+          message: "Your seats are booked! Payment is still pending.",
+        },
+      });
     } catch (error) {
       setSaveError(
         error.message || "Unable to save your booking."
@@ -119,19 +166,24 @@ function Checkout() {
     }
   }
 
-  function handleBackToSeats() {
+  async function handleBackToSeats() {
+    // Give the seats back so other people can pick them.
+    if (isLoggedIn && hasBooking) {
+      api.releaseSeats(show).catch(() => {});
+    }
+
     navigate("/select-seats", {
       state: {
         movie,
         cinema: cinemaHall,
         showDate,
         showTime,
-        selectedSeats,
+        selectedSeats: holdExpired || holdError ? [] : selectedSeats,
       },
     });
   }
 
-  if (!movie || selectedSeats.length === 0) {
+  if (!hasBooking) {
     return (
       <main className="checkout-page page-animation">
         <section className="checkout-card checkout-empty">
@@ -148,6 +200,8 @@ function Checkout() {
       </main>
     );
   }
+
+  const holdBlocked = Boolean(holdError) || holdExpired;
 
   return (
     <main className="checkout-page page-animation">
@@ -170,7 +224,9 @@ function Checkout() {
           <div className="checkout-movie-info">
             <span className="details-kicker">YOUR MOVIE</span>
             <h2>{movieTitle}</h2>
-            {movie.genre && <p>{movie.genre}</p>}
+            {typeof movie.genre === "string" && movie.genre !== "Movie" && (
+              <p>{movie.genre}</p>
+            )}
           </div>
         </div>
 
@@ -178,19 +234,19 @@ function Checkout() {
           <div className="checkout-detail">
             <MapPin />
             <span>Cinema</span>
-            <strong>{cinemaHall}</strong>
+            <strong>{cinemaHall || "Not selected"}</strong>
           </div>
 
           <div className="checkout-detail">
             <CalendarDays />
             <span>Show date</span>
-            <strong>{showDate}</strong>
+            <strong>{showDate || "Not selected"}</strong>
           </div>
 
           <div className="checkout-detail">
             <Clock />
             <span>Show time</span>
-            <strong>{showTime}</strong>
+            <strong>{showTime || "Not selected"}</strong>
           </div>
 
           <div className="checkout-detail">
@@ -217,8 +273,33 @@ function Checkout() {
           </div>
         </div>
 
+        {isLoggedIn && holdError && (
+          <p className="hold-timer expired" role="alert">
+            {holdError}
+          </p>
+        )}
+
+        {isLoggedIn && !holdError && remainingMs !== null && (
+          <p
+            className={`hold-timer ${
+              holdExpired ? "expired" : remainingMs < 60000 ? "urgent" : ""
+            }`}
+            role="status"
+          >
+            <Timer size={16} />
+            {holdExpired ? (
+              "Your seat hold has expired. Please choose your seats again."
+            ) : (
+              <>
+                Seats reserved for you for{" "}
+                <strong>{formatRemaining(remainingMs)}</strong>
+              </>
+            )}
+          </p>
+        )}
+
         {saveError && (
-          <p role="alert" style={{ color: "#ff8fa3" }}>
+          <p className="checkout-error" role="alert">
             {saveError}
           </p>
         )}
@@ -226,10 +307,14 @@ function Checkout() {
         <button
           className="confirm-booking-button"
           onClick={handleContinueToPayment}
-          disabled={saving}
+          disabled={saving || (isLoggedIn && (holdBlocked || !holdExpiresAt))}
         >
           <CreditCard size={18} />
-          {saving ? "Saving Booking..." : "Continue to Payment"}
+          {saving
+            ? "Saving Booking..."
+            : isLoggedIn
+              ? "Confirm Booking"
+              : "Log in to Continue"}
         </button>
 
         <button
@@ -238,11 +323,12 @@ function Checkout() {
           disabled={saving}
         >
           <ArrowLeft size={16} />
-          Back to Seats
+          {holdBlocked ? "Choose Seats Again" : "Back to Seats"}
         </button>
 
         <p className="checkout-secure-note">
-          Your booking is saved with pending payment status.
+          Seats are held for 10 minutes. Your booking is saved with pending
+          payment status.
         </p>
       </section>
     </main>

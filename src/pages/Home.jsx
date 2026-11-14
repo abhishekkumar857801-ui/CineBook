@@ -18,10 +18,27 @@ function Home() {
       try {
         setLoading(true);
         setError("");
-        const data = await api.getTMDBPopularMovies();
+        let data;
+        try {
+          data = await api.getTMDBPopularMovies();
+        } catch (tmdbError) {
+          // TMDB is unreachable on some networks (several Indian ISPs block
+          // it), so fall back to the movies stored in our own database.
+          console.warn("TMDB unavailable, using CineBook catalogue:", tmdbError);
+          const local = await api.getMovies();
+          data = (Array.isArray(local) ? local : []).map((movie) => ({
+            id: movie._id,
+            title: movie.title,
+            overview: movie.description,
+            poster: movie.poster,
+            genre: movie.genre,
+            runtime: movie.duration,
+            vote_average: Number(movie.rating) || 0,
+          }));
+        }
         if (active) setMovies(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Failed to load TMDB movies:", err);
+        console.error("Failed to load movies:", err);
         if (active) setError(err.message || "Unable to load movies. Please try again.");
       } finally {
         if (active) setLoading(false);
@@ -79,9 +96,9 @@ function Home() {
                 movie={{
                   ...movie,
                   id: movie.id,
-                  poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : "",
-                  genre: "Movie",
-                  duration: 0,
+                  poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : movie.poster || "",
+                  genre: movie.genre || "Movie",
+                  duration: movie.runtime || 0,
                   rating: movie.vote_average ? Number(movie.vote_average.toFixed(1)) : "N/A",
                 }}
               />

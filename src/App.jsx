@@ -23,7 +23,7 @@ function App() {
           <Route path="/select-seats" element={<SelectSeats />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
         </Routes>
       </div>
     </BrowserRouter>

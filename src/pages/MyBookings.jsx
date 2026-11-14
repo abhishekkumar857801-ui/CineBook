@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Ticket, Film, CalendarDays, Armchair, ArrowRight } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Ticket, Film, CalendarDays, Armchair, ArrowRight, MapPin, IndianRupee } from "lucide-react";
 import { api } from "../services/api";
 import "./MyBookings.css";
 
 function MyBookings() {
+  const location = useLocation();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,6 +31,7 @@ function MyBookings() {
   return (
     <main className="my-bookings-page page-animation">
       <div className="bookings-heading"><span className="section-kicker">YOUR CINEBOOK ACCOUNT</span><h1>My Bookings</h1><p>All your movie plans, together in one place.</p></div>
+      {location.state?.message && <p className="bookings-success" role="status">{location.state.message}</p>}
       {error ? <p className="bookings-error">{error}</p> : bookings.length === 0 ? (
         <div className="empty-bookings"><span className="empty-booking-icon"><Ticket size={30} /></span><h2>No bookings yet</h2><p>Your movie reservations will appear here once you book a ticket.</p><Link to="/">Explore Movies <ArrowRight size={16} /></Link></div>
       ) : (
@@ -40,7 +42,9 @@ function MyBookings() {
               <h2>{booking.movie?.title || booking.movieTitle || "Movie booking"}</h2>
               <p className="booking-id">Booking ID: {booking._id || booking.id}</p>
               <div className="booking-info-row"><span><Armchair size={15} /> Seats</span><strong>{Array.isArray(booking.seats) ? booking.seats.join(", ") : "Not available"}</strong></div>
-              <div className="booking-info-row"><span><CalendarDays size={15} /> Amount paid</span><strong>₹{booking.totalAmount ?? booking.total ?? 0}</strong></div>
+              {booking.cinema && <div className="booking-info-row"><span><MapPin size={15} /> Cinema</span><strong>{booking.cinema}</strong></div>}
+              {booking.showDate && <div className="booking-info-row"><span><CalendarDays size={15} /> Show</span><strong>{booking.showDate} · {booking.showTime}</strong></div>}
+              <div className="booking-info-row"><span><IndianRupee size={15} /> {booking.paymentStatus === "Paid" ? "Amount paid" : "Amount due"}</span><strong>₹{booking.totalAmount ?? booking.total ?? 0}</strong></div>
             </article>
           ))}
         </div>

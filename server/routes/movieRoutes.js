@@ -1,6 +1,6 @@
 
 const express = require("express");
-const Movie = require("../models/Movie");
+const Movie = require("../models/movie");
 
 const router = express.Router();
 

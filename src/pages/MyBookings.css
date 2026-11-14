@@ -23,3 +23,4 @@
 .bookings-error { padding: 14px; border-radius: 9px; color: #ff9aaa; background: rgba(105,25,43,.25); }
 .booking-loading { color: #a5b4c8; }
 @media(max-width:700px) { .bookings-list { grid-template-columns: 1fr; } .bookings-heading h1 { font-size: 28px; } }
+.bookings-success { margin: 0 0 16px; padding: 14px; border-radius: 9px; color: #8fe3b0; background: rgba(25,105,60,.25); }
